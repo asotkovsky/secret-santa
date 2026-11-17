@@ -1,0 +1,195 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-display);
+  --font-display: var(--font-display);
+
+  /* Festive palette: cranberry red + pine green. */
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: color-mix(in oklch, var(--brand) 14%, white);
+  --color-pop: var(--pop);
+  --color-pop-foreground: var(--pop-foreground);
+  --color-pop-soft: color-mix(in oklch, var(--pop) 14%, white);
+  --color-gold: var(--gold);
+  --color-gold-soft: color-mix(in oklch, var(--gold) 22%, white);
+  --color-pine-deep: var(--pine-deep);
+
+  /* Status colors (fixed, so meaning never depends on a wedding's palette). */
+  --color-yes: #15803d;
+  --color-yes-soft: #dcfce7;
+  --color-maybe: #a16207;
+  --color-maybe-soft: #fef3c7;
+  --color-no: #6b6b76;
+  --color-no-soft: #f1f1f4;
+  --color-late: #b91c1c;
+  --color-late-soft: #fee2e2;
+
+  /* Sticker chip palette for section icons. */
+  --color-rose: #e11d48;
+  --color-rose-soft: #ffe0e7;
+  --color-sun: #b45309;
+  --color-sun-soft: #fff1c2;
+  --color-mint: #047857;
+  --color-mint-soft: #d1fadf;
+  --color-sky: #1d4ed8;
+  --color-sky-soft: #dbeafe;
+  --color-lilac: #6d28d9;
+  --color-lilac-soft: #ede4ff;
+  --color-peach: #c2410c;
+  --color-peach-soft: #ffe4d6;
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* Christmas: cranberry red, pine green, gold, on warm cream. */
+  --brand: #c8102e;
+  --brand-foreground: #ffffff;
+  --brand-ink: #9b0c23;
+  --pop: #1b5e3b;
+  --pop-foreground: #ffffff;
+  --gold: #d9a521;
+  --pine-deep: #0f3d26;
+
+  --background: #fbf6ec;
+  --foreground: #2a1f1a;
+  --card: #fffdf8;
+  --card-foreground: #2a1f1a;
+  --popover: #fffdf8;
+  --popover-foreground: #2a1f1a;
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: #efe6d4;
+  --secondary-foreground: #2a1f1a;
+  --muted: #f3ecdd;
+  --muted-foreground: #6e6258;
+  --accent: #f3ecdd;
+  --accent-foreground: #2a1f1a;
+  --destructive: #b91c1c;
+  --border: #e8dcc6;
+  --input: #dccfb6;
+  --ring: var(--brand);
+  --chart-1: var(--brand);
+  --chart-2: var(--pop);
+  --chart-3: var(--gold);
+  --chart-4: #60a5fa;
+  --chart-5: #a78bfa;
+  --radius: 0.75rem;
+  --sidebar: #fffdf8;
+  --sidebar-foreground: #2a1f1a;
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-foreground);
+  --sidebar-accent: #f3ecdd;
+  --sidebar-accent-foreground: #2a1f1a;
+  --sidebar-border: #e8dcc6;
+  --sidebar-ring: var(--brand);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply overflow-x-clip bg-background text-foreground bg-snowflakes;
+  }
+  html {
+    @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display tracking-tight;
+  }
+}
+
+/* "Sticker" look: chunky outline with a hard offset shadow. */
+@utility sticker {
+  border: 2px solid var(--foreground);
+  box-shadow: 3px 3px 0 0 var(--foreground);
+}
+
+@utility sticker-sm {
+  border: 1.5px solid var(--foreground);
+  box-shadow: 2px 2px 0 0 var(--foreground);
+}
+
+/* Faint scattered snowflakes on cream (the page background). */
+@utility bg-snowflakes {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='%23d9c9a8' stroke-width='1.4' stroke-linecap='round' opacity='.55'%3E%3Cg transform='translate(30 34)'%3E%3Cpath d='M0-9V9M-7.8-4.5 7.8 4.5M-7.8 4.5 7.8-4.5M-2-7 0-5 2-7M-2 7 0 5 2 7'/%3E%3C/g%3E%3Cg transform='translate(128 70) scale(.7)'%3E%3Cpath d='M0-9V9M-7.8-4.5 7.8 4.5M-7.8 4.5 7.8-4.5M-2-7 0-5 2-7M-2 7 0 5 2 7'/%3E%3C/g%3E%3Cg transform='translate(70 140) scale(.85)'%3E%3Cpath d='M0-9V9M-7.8-4.5 7.8 4.5M-7.8 4.5 7.8-4.5M-2-7 0-5 2-7M-2 7 0 5 2 7'/%3E%3C/g%3E%3C/g%3E%3Cg fill='%23d9c9a8' opacity='.5'%3E%3Ccircle cx='96' cy='22' r='1.6'/%3E%3Ccircle cx='160' cy='150' r='1.4'/%3E%3Ccircle cx='12' cy='104' r='1.2'/%3E%3Ccircle cx='150' cy='18' r='1'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+/* White snowflakes for dark green areas (headers, hero). */
+@utility bg-snowflakes-light {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1.4' stroke-linecap='round' opacity='.16'%3E%3Cg transform='translate(30 34)'%3E%3Cpath d='M0-9V9M-7.8-4.5 7.8 4.5M-7.8 4.5 7.8-4.5M-2-7 0-5 2-7M-2 7 0 5 2 7'/%3E%3C/g%3E%3Cg transform='translate(128 70) scale(.7)'%3E%3Cpath d='M0-9V9M-7.8-4.5 7.8 4.5M-7.8 4.5 7.8-4.5M-2-7 0-5 2-7M-2 7 0 5 2 7'/%3E%3C/g%3E%3Cg transform='translate(70 140) scale(.85)'%3E%3Cpath d='M0-9V9M-7.8-4.5 7.8 4.5M-7.8 4.5 7.8-4.5M-2-7 0-5 2-7M-2 7 0 5 2 7'/%3E%3C/g%3E%3C/g%3E%3Cg fill='%23ffffff' opacity='.22'%3E%3Ccircle cx='96' cy='22' r='1.6'/%3E%3Ccircle cx='160' cy='150' r='1.4'/%3E%3Ccircle cx='12' cy='104' r='1.2'/%3E%3Ccircle cx='150' cy='18' r='1'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+/* A string of Christmas lights, hung along the bottom edge of a header. */
+@utility bg-lights {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='22' viewBox='0 0 120 22'%3E%3Cpath d='M0 3 Q15 11 30 3 T60 3 T90 3 T120 3' fill='none' stroke='%230f3d26' stroke-width='1.5'/%3E%3Cg%3E%3Crect x='13' y='6' width='4' height='3' rx='1' fill='%23574b3f'/%3E%3Cellipse cx='15' cy='14' rx='4' ry='6' fill='%23e8323c'/%3E%3Crect x='43' y='6' width='4' height='3' rx='1' fill='%23574b3f'/%3E%3Cellipse cx='45' cy='14' rx='4' ry='6' fill='%23f2c230'/%3E%3Crect x='73' y='6' width='4' height='3' rx='1' fill='%23574b3f'/%3E%3Cellipse cx='75' cy='14' rx='4' ry='6' fill='%2341b06e'/%3E%3Crect x='103' y='6' width='4' height='3' rx='1' fill='%23574b3f'/%3E%3Cellipse cx='105' cy='14' rx='4' ry='6' fill='%234b8fe2'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 120px 22px;
+  height: 22px;
+}
+
+/* A thin red-and-white candy-cane stripe. */
+@utility candy-stripe {
+  background: repeating-linear-gradient(135deg, var(--brand) 0 8px, #ffffff 8px 16px);
+}
+
+/* A wrapped present: red paper with a gold ribbon crossing it. */
+@utility bg-present {
+  background-color: var(--brand);
+  background-image:
+    linear-gradient(90deg, transparent calc(50% - 14px), var(--gold) calc(50% - 14px), var(--gold) calc(50% + 14px), transparent calc(50% + 14px)),
+    linear-gradient(0deg, transparent calc(50% - 14px), var(--gold) calc(50% - 14px), var(--gold) calc(50% + 14px), transparent calc(50% + 14px)),
+    radial-gradient(color-mix(in oklch, white 22%, transparent) 1.5px, transparent 1.5px);
+  background-size: auto, auto, 16px 16px;
+}
