@@ -24,6 +24,7 @@ export default async function ExchangePage({ params }: { params: Promise<{ excha
     phone: p.phone,
     token: p.token,
     isOrganizer: p.isOrganizer,
+    inDraw: p.inDraw,
     invitedAt: p.invitedAt?.toISOString() ?? null,
     revealed: Boolean(p.revealedAt),
     itemCount: p.itemCount,
@@ -32,6 +33,8 @@ export default async function ExchangePage({ params }: { params: Promise<{ excha
   const me = people.find((p) => p.isOrganizer);
   const names = new Map(people.map((p) => [p.id, p.name]));
   const withPhone = people.filter((p) => p.phone);
+  // Gift helpers aren't in the draw.
+  const drawers = people.filter((p) => p.inDraw);
 
   const facts = [
     exchange.budgetCents != null && { icon: CircleDollarSign, text: `${formatMoney(exchange.budgetCents)} limit` },
@@ -65,7 +68,7 @@ export default async function ExchangePage({ params }: { params: Promise<{ excha
           {me && (
             <Button asChild variant="outline">
               <a href={`/p/${me.token}`} target="_blank" rel="noreferrer">
-                <ExternalLink /> My wish list &amp; match
+                <ExternalLink /> {me.inDraw ? <>My wish list &amp; match</> : "My shopping page"}
               </a>
             </Button>
           )}
@@ -74,7 +77,7 @@ export default async function ExchangePage({ params }: { params: Promise<{ excha
 
       <Steps
         steps={[
-          { label: "Make the list", done: people.length >= 3, href: "#people" },
+          { label: "Make the list", done: drawers.length >= 3, href: "#people" },
           { label: "Keep couples apart", done: dash.exclusions.length > 0, optional: true, href: "#apart" },
           { label: "Draw names", done: drawn, href: "#draw" },
           {
@@ -91,7 +94,7 @@ export default async function ExchangePage({ params }: { params: Promise<{ excha
       <div id="apart" className="scroll-mt-4">
         <ExclusionsCard
           exchangeId={exchange.id}
-          people={people.map((p) => ({ id: p.id, name: p.name }))}
+          people={drawers.map((p) => ({ id: p.id, name: p.name }))}
           pairs={dash.exclusions.map((e) => ({ id: e.id, a: names.get(e.a) ?? "?", b: names.get(e.b) ?? "?" }))}
           drawn={drawn}
         />
@@ -100,8 +103,8 @@ export default async function ExchangePage({ params }: { params: Promise<{ excha
         <DrawCard
           exchangeId={exchange.id}
           drawnAt={exchange.drawnAt?.toISOString() ?? null}
-          count={people.length}
-          revealedCount={people.filter((p) => p.revealed).length}
+          count={drawers.length}
+          revealedCount={drawers.filter((p) => p.revealed).length}
           organizerIsParticipant={Boolean(me)}
         />
       </div>

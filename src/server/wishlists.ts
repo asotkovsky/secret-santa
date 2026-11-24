@@ -24,7 +24,14 @@ export async function getHome({ participant, exchange }: ParticipantCtx) {
       })
       .from(participants)
       .leftJoin(wishlistItems, eq(wishlistItems.participantId, participants.id))
-      .where(and(eq(participants.exchangeId, exchange.id), ne(participants.id, participant.id)))
+      // Gift helpers have no wish list, so they aren't listed.
+      .where(
+        and(
+          eq(participants.exchangeId, exchange.id),
+          ne(participants.id, participant.id),
+          eq(participants.inDraw, true),
+        ),
+      )
       .groupBy(participants.id)
       .orderBy(asc(participants.name)),
     ownerItems(participant.id),
@@ -45,6 +52,7 @@ export async function getMatch(giverId: string) {
 
 /** Reveals (and records that this person has seen) who they're buying for. */
 export async function reveal({ participant, exchange }: ParticipantCtx) {
+  if (!participant.inDraw) throw new UserError("Gift helpers aren't in the draw, so there's no match to reveal.");
   if (!exchange.drawnAt) throw new UserError("Names haven't been drawn yet. Check back soon!");
   const match = await getMatch(participant.id);
   if (!match) throw new UserError("Names haven't been drawn yet. Check back soon!");
@@ -101,7 +109,7 @@ export async function getOthersList({ participant, exchange }: ParticipantCtx, o
   const [owner] = await db
     .select({ id: participants.id, name: participants.name })
     .from(participants)
-    .where(and(eq(participants.id, ownerId), eq(participants.exchangeId, exchange.id)));
+    .where(and(eq(participants.id, ownerId), eq(participants.exchangeId, exchange.id), eq(participants.inDraw, true)));
   if (!owner) return null;
   return { owner, items: await shopperItems(owner.id, participant.id) };
 }
@@ -134,6 +142,7 @@ async function assertOwnItem(participantId: string, itemId: string) {
 }
 
 export async function addItem({ participant }: ParticipantCtx, input: unknown) {
+  if (!participant.inDraw) throw new UserError("Gift helpers don't have a wish list.");
   const values = itemInput.parse(input);
   const [{ n, last }] = await db
     .select({ n: count(), last: sql<number>`coalesce(max(${wishlistItems.sortOrder}), 0)::int` })

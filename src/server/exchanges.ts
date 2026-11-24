@@ -1,6 +1,6 @@
 // Organizer-side services. Callers must have authorized the organizer (requireExchange).
 import "server-only";
-import { and, asc, count, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { assignments, exchanges, exclusions, participants, textLog, wishlistItems, type TextKind } from "@/db/schema";
@@ -30,6 +30,11 @@ function exchangeValues(input: unknown) {
 export const participantInput = z.object({
   name: z.string().trim().min(1, "Enter a name.").max(80),
   phone: optPhone,
+  /** "off" (or false) makes them a gift helper: not in the draw, no wish list. */
+  inDraw: z
+    .union([z.boolean(), z.enum(["on", "off"])])
+    .optional()
+    .transform((v) => v === undefined || v === true || v === "on"),
 });
 
 export async function listExchanges(userId: string) {
@@ -87,6 +92,7 @@ export async function getDashboard(exchange: ExchangeRow) {
         phone: participants.phone,
         token: participants.token,
         isOrganizer: participants.isOrganizer,
+        inDraw: participants.inDraw,
         invitedAt: participants.invitedAt,
         revealedAt: participants.revealedAt,
         itemCount: count(wishlistItems.id),
@@ -131,9 +137,10 @@ async function assertParticipant(exchange: ExchangeRow, participantId: string) {
   return row;
 }
 
+/** Gift helpers can be added any time; people in the draw only before it. */
 export async function addParticipant(exchange: ExchangeRow, input: unknown) {
-  assertNotDrawn(exchange, "add people");
   const values = participantInput.parse(input);
+  if (values.inDraw) assertNotDrawn(exchange, "add people to the draw (gift helpers can still be added)");
   const [row] = await db
     .insert(participants)
     .values({ ...values, exchangeId: exchange.id, token: newToken() })
@@ -141,16 +148,28 @@ export async function addParticipant(exchange: ExchangeRow, input: unknown) {
   return { participantId: row.id };
 }
 
-/** Name and phone can change at any time, even after the draw. */
+/** Name and phone can change at any time; whether they're in the draw only before it. */
 export async function updateParticipant(exchange: ExchangeRow, participantId: string, input: unknown) {
-  await assertParticipant(exchange, participantId);
-  await db.update(participants).set(participantInput.parse(input)).where(eq(participants.id, participantId));
+  const current = await assertParticipant(exchange, participantId);
+  const values = participantInput.parse(input);
+  if (values.inDraw !== current.inDraw) assertNotDrawn(exchange, "change who's in the draw");
+  await db.transaction(async (tx) => {
+    await tx.update(participants).set(values).where(eq(participants.id, participantId));
+    if (!values.inDraw) {
+      // Gift helpers aren't in the draw, so pairs kept apart and any wish list no longer apply.
+      await tx
+        .delete(exclusions)
+        .where(or(eq(exclusions.participantAId, participantId), eq(exclusions.participantBId, participantId)));
+      await tx.delete(wishlistItems).where(eq(wishlistItems.participantId, participantId));
+    }
+  });
   return { participantId };
 }
 
+/** Gift helpers can be removed any time; people in the draw only before it. */
 export async function removeParticipant(exchange: ExchangeRow, participantId: string) {
-  assertNotDrawn(exchange, "remove people");
-  await assertParticipant(exchange, participantId);
+  const person = await assertParticipant(exchange, participantId);
+  if (person.inDraw) assertNotDrawn(exchange, "remove people");
   await db.delete(participants).where(eq(participants.id, participantId));
   return { participantId };
 }
@@ -167,7 +186,8 @@ export async function resetLink(exchange: ExchangeRow, participantId: string) {
 export async function addExclusion(exchange: ExchangeRow, aId: string, bId: string) {
   assertNotDrawn(exchange, "change who can't draw whom");
   if (aId === bId) throw new UserError("Pick two different people.");
-  await Promise.all([assertParticipant(exchange, aId), assertParticipant(exchange, bId)]);
+  const pair = await Promise.all([assertParticipant(exchange, aId), assertParticipant(exchange, bId)]);
+  if (pair.some((p) => !p.inDraw)) throw new UserError("Gift helpers aren't in the draw, so there's nothing to keep apart.");
   const [a, b] = aId < bId ? [aId, bId] : [bId, aId];
   const inserted = await db
     .insert(exclusions)
@@ -194,7 +214,7 @@ export async function runDraw(exchangeId: string) {
     const people = await tx
       .select({ id: participants.id })
       .from(participants)
-      .where(eq(participants.exchangeId, exchangeId));
+      .where(and(eq(participants.exchangeId, exchangeId), eq(participants.inDraw, true)));
     if (people.length < 3) throw new UserError("Add at least 3 people before drawing names.");
     const pairs = await tx
       .select({ a: exclusions.participantAId, b: exclusions.participantBId })
@@ -255,11 +275,20 @@ type Recipient = {
   name: string;
   phone: string | null;
   token: string;
+  inDraw: boolean;
   revealedAt: Date | null;
   itemCount: number;
 };
 
 function inviteText(exchange: ExchangeRow, p: Recipient, link: string) {
+  if (!p.inDraw) {
+    return [
+      `Hi ${firstName(p.name)}! 🎅 You're a gift helper for the "${exchange.name}" Nice List.`,
+      "Tap to see everyone's wish lists, and mark what you buy so nobody doubles up:",
+      link,
+      "This link is just for you, so no sharing with the elves. 🤫",
+    ].join("\n");
+  }
   const budget = formatMoney(exchange.budgetCents);
   const due = formatDay(exchange.wishlistDueOn, "MMM d");
   return [
@@ -277,6 +306,7 @@ function inviteText(exchange: ExchangeRow, p: Recipient, link: string) {
 
 /** Null when there's nothing left for this person to do. */
 function reminderText(exchange: ExchangeRow, p: Recipient, link: string) {
+  if (!p.inDraw) return null;
   const todo: string[] = [];
   if (exchange.drawnAt && !p.revealedAt) {
     const due = formatDay(exchange.revealDueOn, "MMM d");
@@ -293,9 +323,12 @@ function reminderText(exchange: ExchangeRow, p: Recipient, link: string) {
   ].join("\n");
 }
 
-/** Whether a reminder would go to this person: drawn but not revealed, or an empty list. */
-export function needsReminder(drawn: boolean, p: { revealedAt: Date | null; itemCount: number }) {
-  return (drawn && !p.revealedAt) || p.itemCount === 0;
+/**
+ * Whether a reminder would go to this person: drawn but not revealed, or an empty list. Gift
+ * helpers have neither, so never.
+ */
+export function needsReminder(drawn: boolean, p: { inDraw: boolean; revealedAt: Date | null; itemCount: number }) {
+  return p.inDraw && ((drawn && !p.revealedAt) || p.itemCount === 0);
 }
 
 /**
@@ -311,6 +344,7 @@ export async function prepareTexts(exchange: ExchangeRow, kind: TextKind, ids: s
       name: participants.name,
       phone: participants.phone,
       token: participants.token,
+      inDraw: participants.inDraw,
       revealedAt: participants.revealedAt,
       itemCount: count(wishlistItems.id),
     })

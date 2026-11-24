@@ -17,6 +17,7 @@ export default async function ParticipantHome({ params }: { params: Promise<{ to
   const ctx = await requireParticipant(token);
   const { participant, exchange } = ctx;
   const home = await getHome(ctx);
+  const helper = !participant.inDraw;
 
   return (
     <div className="min-h-dvh">
@@ -27,22 +28,35 @@ export default async function ParticipantHome({ params }: { params: Promise<{ to
           <ExchangeFacts exchange={exchange} />
         </div>
 
-        <MatchCard token={token} drawn={Boolean(exchange.drawnAt)} match={home.match} />
-
-        <section className="space-y-4">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-bold">Your wish list</h2>
-            <p className="text-sm text-muted-foreground">
-              Everyone on the Nice List can see it. You&apos;ll never see whether something&apos;s been bought, so the
-              surprise stays safe.
+        {helper ? (
+          <section className="space-y-1 rounded-2xl border border-gold/40 bg-gold-soft/50 px-5 py-4">
+            <h2 className="text-xl font-bold">You&apos;re a gift helper 🎁</h2>
+            <p className="text-sm">
+              You&apos;re not in the name draw, so there&apos;s no match or wish list to make. Just browse everyone&apos;s
+              lists below and tap &ldquo;I bought this&rdquo; when you get something, so nobody doubles up. Nobody ever
+              sees what&apos;s been bought from their own list.
             </p>
-          </div>
-          <MyList token={token} items={home.myItems} />
-        </section>
+          </section>
+        ) : (
+          <>
+            <MatchCard token={token} drawn={Boolean(exchange.drawnAt)} match={home.match} />
+
+            <section className="space-y-4">
+              <div className="space-y-1">
+                <h2 className="text-2xl font-bold">Your wish list</h2>
+                <p className="text-sm text-muted-foreground">
+                  Everyone on the Nice List can see it. You&apos;ll never see whether something&apos;s been bought, so
+                  the surprise stays safe.
+                </p>
+              </div>
+              <MyList token={token} items={home.myItems} />
+            </section>
+          </>
+        )}
 
         <section className="space-y-4">
           <div className="space-y-1">
-            <h2 className="text-2xl font-bold">Everyone on the Nice List</h2>
+            <h2 className="text-2xl font-bold">{helper ? "Everyone's wish lists" : "Everyone on the Nice List"}</h2>
             <p className="text-sm text-muted-foreground">
               Buying something? Tap &ldquo;I bought this&rdquo; so nobody else gets the same thing.
             </p>

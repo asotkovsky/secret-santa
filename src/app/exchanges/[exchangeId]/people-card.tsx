@@ -8,6 +8,8 @@ import { ConfirmDialog } from "@/components/confirm-button";
 import { Field, PhoneField } from "@/components/form-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -35,6 +37,8 @@ export type PersonRow = {
   phone: string | null;
   token: string;
   isOrganizer: boolean;
+  /** False for a gift helper: not in the draw, no wish list, but shops from everyone's lists. */
+  inDraw: boolean;
   invitedAt: string | null;
   revealed: boolean;
   itemCount: number;
@@ -53,15 +57,13 @@ export function PeopleCard({ exchangeId, people, drawn }: { exchangeId: string; 
           </CardTitle>
           <CardDescription>
             {drawn
-              ? "Names are drawn, so the list is locked. Reset the draw to add or remove someone."
-              : "Everyone who's taking part, with a mobile number so you can text them their link."}
+              ? "Names are drawn, so the draw is locked. You can still add gift helpers (like grandparents) who shop but aren't in the draw."
+              : "Everyone who's taking part, with a mobile number so you can text them their link. Add gift helpers (like grandparents) who shop but aren't in the draw."}
           </CardDescription>
         </div>
-        {!drawn && (
-          <Button onClick={() => setEditing("new")} className="w-full sm:w-auto">
-            <UserPlus /> Add person
-          </Button>
-        )}
+        <Button onClick={() => setEditing("new")} className="w-full sm:w-auto">
+          <UserPlus /> {drawn ? "Add gift helper" : "Add person"}
+        </Button>
       </CardHeader>
       <CardContent>
         {people.length === 0 ? (
@@ -76,7 +78,7 @@ export function PeopleCard({ exchangeId, people, drawn }: { exchangeId: string; 
           </ul>
         )}
       </CardContent>
-      <PersonDialog exchangeId={exchangeId} editing={editing} onClose={() => setEditing(null)} />
+      <PersonDialog exchangeId={exchangeId} editing={editing} drawn={drawn} onClose={() => setEditing(null)} />
     </Card>
   );
 }
@@ -110,6 +112,7 @@ function PersonItem({
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold">{p.name}</span>
             {p.isOrganizer && <Badge variant="outline">You · Head Elf</Badge>}
+            {!p.inDraw && <Badge variant="secondary">Gift helper</Badge>}
           </div>
           <div className={cn("text-sm whitespace-nowrap", p.phone ? "text-muted-foreground" : "text-destructive/80")}>
             {p.phone ?? "No phone number"}
@@ -118,8 +121,9 @@ function PersonItem({
         <div>
           <p className="text-xs text-muted-foreground">
             {[
-              p.itemCount ? `${p.itemCount} ${p.itemCount === 1 ? "idea" : "ideas"} on their list` : "No wish list yet",
-              drawn && (p.revealed ? "saw their match" : "hasn't seen their match"),
+              !p.inDraw && "Not in the draw, just shopping",
+              p.inDraw && (p.itemCount ? `${p.itemCount} ${p.itemCount === 1 ? "idea" : "ideas"} on their list` : "No wish list yet"),
+              p.inDraw && drawn && (p.revealed ? "saw their match" : "hasn't seen their match"),
               p.invitedAt ? "link texted" : "link not texted yet",
             ]
               .filter(Boolean)
@@ -141,13 +145,13 @@ function PersonItem({
             <Copy /> Copy their link
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={onEdit}>
-            <Pencil /> Edit name or phone
+            <Pencil /> Edit {p.name}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setConfirm("relink")}>
             <RefreshCw /> Replace their link
           </DropdownMenuItem>
-          {!drawn && (
+          {(!drawn || !p.inDraw) && (
             <DropdownMenuItem variant="destructive" onSelect={() => setConfirm("remove")}>
               <Trash2 /> Remove {p.name}
             </DropdownMenuItem>
@@ -158,7 +162,11 @@ function PersonItem({
         open={confirm === "remove"}
         onOpenChange={(o) => !o && setConfirm(null)}
         title={`Remove ${p.name}?`}
-        description="Their wish list will be deleted too."
+        description={
+          p.inDraw
+            ? "Their wish list will be deleted too."
+            : "Anything they marked as bought goes back on the lists."
+        }
         confirmLabel="Remove"
         onConfirm={() => run(() => removeParticipantAction(exchangeId, p.id), `Removed ${p.name}`)}
       />
@@ -185,30 +193,43 @@ function PersonItem({
 function PersonDialog({
   exchangeId,
   editing,
+  drawn,
   onClose,
 }: {
   exchangeId: string;
   editing: PersonRow | "new" | null;
+  drawn: boolean;
   onClose: () => void;
 }) {
   const { pending, run } = useAction();
   const isNew = editing === "new";
   const person = editing && editing !== "new" ? editing : null;
   const [added, setAdded] = useState<string[]>([]);
+  const [helper, setHelper] = useState(false);
+  const [openFor, setOpenFor] = useState<typeof editing>(null);
+
+  // Reset the switch whenever the dialog opens for a different person.
+  if (openFor !== editing) {
+    setOpenFor(editing);
+    // After the draw, only gift helpers can be added.
+    setHelper(person ? !person.inDraw : drawn);
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
     const { name, phone } = formObject(form);
+    const input = { name, phone, inDraw: helper ? "off" : "on" };
     if (isNew) {
-      if (await run(() => addParticipantAction(exchangeId, { name, phone }), `Added ${name} 🎉`)) {
+      if (await run(() => addParticipantAction(exchangeId, input), `Added ${name} 🎉`)) {
         // Stay open so the next person can be added straight away.
         setAdded((a) => [...a, name]);
         form.reset();
+        setHelper(drawn);
         form.querySelector<HTMLInputElement>("input[name=name]")?.focus();
       }
     } else if (person) {
-      if (await run(() => updateParticipantAction(exchangeId, person.id, { name, phone }), "Saved")) onClose();
+      if (await run(() => updateParticipantAction(exchangeId, person.id, input), "Saved")) onClose();
     }
   }
 
@@ -221,7 +242,7 @@ function PersonDialog({
     <Dialog open={editing !== null} onOpenChange={(o) => !o && close()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isNew ? "Add to the Nice List" : `Edit ${person?.name}`}</DialogTitle>
+          <DialogTitle>{isNew ? (drawn ? "Add a gift helper" : "Add to the Nice List") : `Edit ${person?.name}`}</DialogTitle>
           {isNew && (
             <DialogDescription>
               {added.length
@@ -240,12 +261,30 @@ function PersonDialog({
             hint="Used to text them their personal link."
             defaultValue={person?.phone ?? ""}
           />
+          <div className="flex items-start justify-between gap-4 rounded-xl border bg-muted/40 p-3">
+            <div className="space-y-1">
+              <Label htmlFor="helper">🎁 Gift helper</Label>
+              <p className="text-xs text-muted-foreground">
+                {drawn
+                  ? isNew
+                    ? "Names are already drawn, so new people join as gift helpers: not in the draw and no wish list, but they can browse everyone's lists and mark what they buy."
+                    : "Can't change after names are drawn. Reset the draw first."
+                  : "Not in the name draw and no wish list, but can browse everyone's lists and mark what they buy. Great for grandparents."}
+              </p>
+            </div>
+            <Switch id="helper" checked={helper} onCheckedChange={setHelper} disabled={drawn} className="mt-0.5" />
+          </div>
+          {person && person.inDraw && helper && (
+            <p className="text-xs text-destructive">
+              Saving removes their wish list and any &ldquo;keep apart&rdquo; pairs they&apos;re in.
+            </p>
+          )}
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={close}>
               {isNew ? "Done" : "Cancel"}
             </Button>
             <Button type="submit" disabled={pending}>
-              {isNew ? "Add person" : "Save"}
+              {isNew ? (drawn ? "Add gift helper" : "Add person") : "Save"}
             </Button>
           </DialogFooter>
         </form>

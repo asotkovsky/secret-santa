@@ -60,6 +60,11 @@ export const participants = pgTable(
     token: text("token").notNull().unique(),
     /** This is the organizer's own entry (they're taking part too). */
     isOrganizer: boolean("is_organizer").notNull().default(false),
+    /**
+     * False for a gift helper (e.g. a grandparent): not in the draw and no wish list, but they
+     * browse everyone's lists and mark what they buy, like any other shopper.
+     */
+    inDraw: boolean("in_draw").notNull().default(true),
     invitedAt: timestamp("invited_at", { withTimezone: true }),
     revealedAt: timestamp("revealed_at", { withTimezone: true }),
     ...timestamps(),

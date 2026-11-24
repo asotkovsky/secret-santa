@@ -1,0 +1,1 @@
+ALTER TABLE "participants" ADD COLUMN "in_draw" boolean DEFAULT true NOT NULL;
