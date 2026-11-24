@@ -89,14 +89,11 @@ export function ItemCard({
       </div>
 
       <div className={cn("flex flex-1 flex-col gap-1 p-3", dimmed && "opacity-60")}>
-        <h3 className="line-clamp-2 font-sans text-sm leading-snug font-semibold [overflow-wrap:anywhere]">
+        <h3 className="font-sans text-sm leading-snug font-semibold [overflow-wrap:anywhere]">
           {item.name}
         </h3>
         {item.notes && (
-          <p
-            title={item.notes}
-            className="line-clamp-3 text-xs leading-relaxed [overflow-wrap:anywhere] whitespace-pre-line text-muted-foreground"
-          >
+          <p className="text-xs leading-relaxed [overflow-wrap:anywhere] whitespace-pre-line text-muted-foreground">
             {item.notes}
           </p>
         )}
