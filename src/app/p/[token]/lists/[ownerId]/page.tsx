@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/brand";
 import { isUuid, requireParticipant } from "@/lib/access";
 import { formatMoney } from "@/lib/format";
 import { getMatch, getOthersList } from "@/server/wishlists";
+import { markPurchasedAction, unmarkPurchasedAction } from "../../actions";
 import { ExchangeHeader } from "../../header";
 import { ItemCard, ItemGrid, ItemTag } from "../../item-card";
 import { PurchaseButton } from "./purchase-button";
@@ -65,13 +66,17 @@ export default async function OthersListPage({ params }: { params: Promise<{ tok
             {items.map((item) => (
               <ItemCard
                 key={item.id}
-                token={token}
+                photoBase={`/p/${token}`}
                 item={item}
                 dimmed={item.purchased}
                 tag={item.purchased && <ItemTag>✓ {item.purchasedByMe ? "You bought this" : "Bought"}</ItemTag>}
                 footer={
                   !item.purchased || item.purchasedByMe ? (
-                    <PurchaseButton token={token} itemId={item.id} purchasedByMe={item.purchasedByMe} />
+                    <PurchaseButton
+                      purchasedByMe={item.purchasedByMe}
+                      mark={markPurchasedAction.bind(null, token, item.id)}
+                      unmark={unmarkPurchasedAction.bind(null, token, item.id)}
+                    />
                   ) : (
                     <p className="py-1.5 text-center text-xs text-muted-foreground">Someone got this one</p>
                   )

@@ -41,21 +41,22 @@ export function ItemGrid({ children, wide = false }: { children: React.ReactNode
  * row, and `dimmed` greys the whole tile out (already bought).
  */
 export function ItemCard({
-  token,
+  photoBase,
   item,
   actions,
   tag,
   footer,
   dimmed = false,
 }: {
-  token: string;
+  /** Where photos are served from: a personal link (/p/<token>) or a guest link (/g/<shareToken>). */
+  photoBase: string;
   item: ItemView;
   actions?: React.ReactNode;
   tag?: React.ReactNode;
   footer?: React.ReactNode;
   dimmed?: boolean;
 }) {
-  const photo = item.photoId ? `/p/${token}/photos/${item.photoId}` : null;
+  const photo = item.photoId ? `${photoBase}/photos/${item.photoId}` : null;
   return (
     <li
       className={cn(

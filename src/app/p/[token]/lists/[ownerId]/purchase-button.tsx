@@ -3,16 +3,20 @@
 import { Check, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAction } from "@/components/use-action";
-import { markPurchasedAction, unmarkPurchasedAction } from "../../actions";
+import type { ActionResult } from "@/server/action";
 
+/**
+ * "I bought this" / "Undo" under an item. `mark` and `unmark` are server actions already bound to
+ * the link and item, so the same button works on personal links and guest links.
+ */
 export function PurchaseButton({
-  token,
-  itemId,
   purchasedByMe,
+  mark,
+  unmark,
 }: {
-  token: string;
-  itemId: string;
   purchasedByMe: boolean;
+  mark: () => Promise<ActionResult>;
+  unmark: () => Promise<ActionResult>;
 }) {
   const { pending, run } = useAction();
   return purchasedByMe ? (
@@ -21,7 +25,7 @@ export function PurchaseButton({
       size="sm"
       className="w-full"
       disabled={pending}
-      onClick={() => run(() => unmarkPurchasedAction(token, itemId), "Unmarked. It's back on the list.")}
+      onClick={() => run(unmark, "Unmarked. It's back on the list.")}
     >
       <Undo2 /> Undo
     </Button>
@@ -31,7 +35,7 @@ export function PurchaseButton({
       size="sm"
       className="w-full bg-pop-soft text-pop hover:bg-pop-soft/70"
       disabled={pending}
-      onClick={() => run(() => markPurchasedAction(token, itemId), "Marked as bought. Mum's the word 🤫")}
+      onClick={() => run(mark, "Marked as bought. Mum's the word 🤫")}
     >
       <Check /> I bought this
     </Button>

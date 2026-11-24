@@ -5,10 +5,12 @@ import { SiteFooter } from "@/components/brand";
 import { Badge } from "@/components/ui/badge";
 import { requireParticipant } from "@/lib/access";
 import { firstName } from "@/lib/format";
+import { guestLink } from "@/server/guests";
 import { getHome } from "@/server/wishlists";
 import { ExchangeFacts, ExchangeHeader } from "./header";
 import { MatchCard } from "./match-card";
 import { MyList } from "./my-list";
+import { ShareListButton } from "./share-list-button";
 
 export const metadata: Metadata = { title: "Your page" };
 
@@ -16,7 +18,7 @@ export default async function ParticipantHome({ params }: { params: Promise<{ to
   const { token } = await params;
   const ctx = await requireParticipant(token);
   const { participant, exchange } = ctx;
-  const home = await getHome(ctx);
+  const [home, guestUrl] = await Promise.all([getHome(ctx), guestLink(ctx)]);
   const helper = !participant.inDraw;
 
   return (
@@ -43,10 +45,13 @@ export default async function ParticipantHome({ params }: { params: Promise<{ to
 
             <section className="space-y-4">
               <div className="space-y-1">
-                <h2 className="text-2xl font-bold">Your wish list</h2>
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-2xl font-bold">Your wish list</h2>
+                  {guestUrl && <ShareListButton url={guestUrl} />}
+                </div>
                 <p className="text-sm text-muted-foreground">
-                  Everyone on the Nice List can see it. You&apos;ll never see whether something&apos;s been bought, so
-                  the surprise stays safe.
+                  Everyone on the Nice List can see it, and you can share it with anyone else too. You&apos;ll never
+                  see whether something&apos;s been bought, so the surprise stays safe.
                 </p>
               </div>
               <MyList token={token} items={home.myItems} />

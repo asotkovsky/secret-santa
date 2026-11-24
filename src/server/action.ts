@@ -35,3 +35,8 @@ export async function organizerAction<T>(exchangeId: string, fn: (exchange: Exch
 export async function participantAction<T>(token: string, fn: (ctx: ParticipantCtx) => Promise<T>) {
   return wrap(async () => fn(await requireParticipant(token)), `/p/${token}`);
 }
+
+/** For actions through a guest link (/g/<shareToken>); the service checks the link. */
+export async function guestAction<T>(shareToken: string, fn: () => Promise<T>) {
+  return wrap(fn, `/g/${shareToken}`);
+}

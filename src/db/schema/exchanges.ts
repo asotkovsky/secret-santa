@@ -58,6 +58,12 @@ export const participants = pgTable(
     phone: text("phone"),
     /** The secret in this participant's personal link. Replace it to revoke a leaked link. */
     token: text("token").notNull().unique(),
+    /**
+     * The secret in this participant's guest link (/g/<shareToken>), which they can share with
+     * anyone to show their wish list. Made the first time it's needed. Unlike `token`, it only
+     * opens this one list.
+     */
+    shareToken: text("share_token").unique(),
     /** This is the organizer's own entry (they're taking part too). */
     isOrganizer: boolean("is_organizer").notNull().default(false),
     /**
@@ -156,12 +162,16 @@ export const purchases = pgTable(
     itemId: uuid("item_id")
       .primaryKey()
       .references(() => wishlistItems.id, { onDelete: "cascade" }),
-    buyerId: uuid("buyer_id")
-      .notNull()
-      .references(() => participants.id, { onDelete: "cascade" }),
+    /** The participant who bought it, or null when a guest did. */
+    buyerId: uuid("buyer_id").references(() => participants.id, { onDelete: "cascade" }),
+    /** An anonymous guest's id (from a cookie), when they bought it through a guest link. */
+    guestId: text("guest_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("purchases_buyer_idx").on(t.buyerId)],
+  (t) => [
+    index("purchases_buyer_idx").on(t.buyerId),
+    check("purchases_one_buyer_ck", sql`(${t.buyerId} is null) <> (${t.guestId} is null)`),
+  ],
 );
 
 export type TextKind = "invite" | "reminder";

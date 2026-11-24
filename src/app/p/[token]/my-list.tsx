@@ -40,7 +40,7 @@ export function MyList({ token, items }: { token: string; items: ItemView[] }) {
           {items.map((item) => (
             <ItemCard
               key={item.id}
-              token={token}
+              photoBase={`/p/${token}`}
               item={item}
               actions={
                 <>

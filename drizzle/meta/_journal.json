@@ -15,6 +15,13 @@
       "when": 1795496706542,
       "tag": "0001_gift_helpers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795563385289,
+      "tag": "0002_guest_links",
+      "breakpoints": true
     }
   ]
 }

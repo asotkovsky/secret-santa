@@ -65,7 +65,7 @@ export async function reveal({ participant, exchange }: ParticipantCtx) {
 // ---- Lists ----
 
 const photoColumns = { photoId: itemPhotos.id, photoWidth: itemPhotos.width, photoHeight: itemPhotos.height };
-const itemColumns = {
+export const itemColumns = {
   id: wishlistItems.id,
   name: wishlistItems.name,
   links: wishlistItems.links,
@@ -74,7 +74,7 @@ const itemColumns = {
 };
 
 /** Items as their owner sees them: no purchase information at all. */
-async function ownerItems(ownerId: string) {
+export async function ownerItems(ownerId: string) {
   return db
     .select(itemColumns)
     .from(wishlistItems)
@@ -86,16 +86,17 @@ async function ownerItems(ownerId: string) {
 /** Items as other shoppers see them: whether each is bought, and whether by the viewer. */
 async function shopperItems(ownerId: string, viewerId: string) {
   const rows = await db
-    .select({ ...itemColumns, buyerId: purchases.buyerId })
+    .select({ ...itemColumns, purchaseId: purchases.itemId, buyerId: purchases.buyerId })
     .from(wishlistItems)
     .leftJoin(itemPhotos, eq(itemPhotos.itemId, wishlistItems.id))
     .leftJoin(purchases, eq(purchases.itemId, wishlistItems.id))
     .where(eq(wishlistItems.participantId, ownerId))
     .orderBy(asc(wishlistItems.sortOrder), asc(wishlistItems.createdAt));
   // Don't send who bought it, just whether it's taken and whether it was you.
-  return rows.map(({ buyerId, ...item }) => ({
+  return rows.map(({ purchaseId, buyerId, ...item }) => ({
     ...item,
-    purchased: buyerId !== null,
+    // Bought by anyone: a participant, or a guest through a guest link (buyerId null).
+    purchased: purchaseId !== null,
     purchasedByMe: buyerId === viewerId,
   }));
 }
