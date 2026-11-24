@@ -18,16 +18,18 @@ export function PurchaseButton({
   return purchasedByMe ? (
     <Button
       variant="outline"
-      className="w-full sm:w-auto"
+      size="sm"
+      className="w-full"
       disabled={pending}
       onClick={() => run(() => unmarkPurchasedAction(token, itemId), "Unmarked. It's back on the list.")}
     >
-      <Undo2 /> Undo, I didn&apos;t buy it
+      <Undo2 /> Undo
     </Button>
   ) : (
     <Button
       variant="secondary"
-      className="w-full bg-pop-soft text-pop hover:bg-pop-soft/70 sm:w-auto"
+      size="sm"
+      className="w-full bg-pop-soft text-pop hover:bg-pop-soft/70"
       disabled={pending}
       onClick={() => run(() => markPurchasedAction(token, itemId), "Marked as bought. Mum's the word 🤫")}
     >

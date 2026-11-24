@@ -12,68 +12,107 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAction } from "@/components/use-action";
 import { addItemAction, deleteItemAction, removePhotoAction, updateItemAction } from "./actions";
-import { ItemCard, type ItemView } from "./item-card";
-import { Reactions } from "./reactions";
+import { ItemCard, ItemGrid, type ItemView } from "./item-card";
 
 const MAX_LINKS = 5;
 const MAX_SIDE = 1200;
 
-type MyItem = ItemView & { reactions: { key: string; count: number; mine: boolean }[] };
-
-export function MyList({ token, items }: { token: string; items: MyItem[] }) {
+export function MyList({ token, items }: { token: string; items: ItemView[] }) {
   const { run } = useAction();
   const [editing, setEditing] = useState<ItemView | "new" | null>(null);
 
   return (
     <div className="space-y-3">
       {items.length === 0 ? (
-        <div className="rounded-2xl border-2 border-dashed border-gold/50 bg-card p-8 text-center">
+        <div className="space-y-4 rounded-2xl border-2 border-dashed border-gold/50 bg-card p-8 text-center">
           <p className="text-3xl" aria-hidden>
             🦌
           </p>
-          <p className="mt-2 text-muted-foreground">
+          <p className="text-muted-foreground">
             Santa can&apos;t read minds (officially). Add a few ideas so your Secret Santa knows what you&apos;d love!
           </p>
+          <Button onClick={() => setEditing("new")}>
+            <Plus /> Add a gift idea
+          </Button>
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ItemGrid>
           {items.map((item) => (
             <ItemCard
               key={item.id}
               token={token}
               item={item}
-              footer={<Reactions token={token} itemId={item.id} initial={item.reactions} readOnly />}
               actions={
                 <>
-                  <Button variant="ghost" size="icon" aria-label={`Edit ${item.name}`} onClick={() => setEditing(item)}>
+                  <TileButton label={`Edit ${item.name}`} onClick={() => setEditing(item)}>
                     <Pencil />
-                  </Button>
+                  </TileButton>
                   <ConfirmButton
                     title={`Remove "${item.name}"?`}
                     confirmLabel="Remove"
                     onConfirm={() => run(() => deleteItemAction(token, item.id))}
                   >
-                    <Button variant="ghost" size="icon" aria-label={`Remove ${item.name}`}>
+                    <TileButton label={`Remove ${item.name}`}>
                       <Trash2 />
-                    </Button>
+                    </TileButton>
                   </ConfirmButton>
                 </>
               }
             />
           ))}
-        </ul>
+          <li>
+            <button
+              type="button"
+              onClick={() => setEditing("new")}
+              className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gold/60 bg-card/60 text-sm font-semibold text-muted-foreground transition-colors hover:border-brand/50 hover:text-brand"
+            >
+              <Plus className="size-7" />
+              Add a gift idea
+            </button>
+          </li>
+        </ItemGrid>
       )}
-      <Button onClick={() => setEditing("new")} className="w-full sm:w-auto">
-        <Plus /> Add a gift idea
-      </Button>
       <ItemDialog token={token} editing={editing} onClose={() => setEditing(null)} />
     </div>
   );
 }
 
+/** A small round icon button that floats over an item's image. */
+function TileButton({ label, ...props }: { label: string } & React.ComponentProps<"button">) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      className="grid size-9 place-items-center rounded-full bg-card/95 text-foreground shadow-sm ring-1 ring-foreground/10 backdrop-blur transition-colors hover:bg-card hover:text-brand sm:size-8 [&_svg]:size-4"
+      {...props}
+    />
+  );
+}
+
+/**
+ * Checks a chosen file is a photo this browser can open, before it's attached. Returns a message
+ * that says exactly what's wrong, or null when the file is fine.
+ */
+async function photoProblem(file: File): Promise<string | null> {
+  const ext = file.name.includes(".") ? file.name.split(".").pop()!.toUpperCase() : "";
+  if (!file.type.startsWith("image/") && !["HEIC", "HEIF"].includes(ext)) {
+    return `"${file.name}" isn't a photo. Choose an image file: JPG, PNG, WebP or GIF.`;
+  }
+  try {
+    (await createImageBitmap(file)).close();
+    return null;
+  } catch {
+    return ext
+      ? `"${file.name}" is a ${ext} image, which this browser can't open. Save it as a JPG or PNG (or take a screenshot of it) and try again.`
+      : `"${file.name}" couldn't be opened as an image. Choose a JPG, PNG, WebP or GIF.`;
+  }
+}
+
 /** Shrinks a photo to at most 1200px on its long side as a JPEG, respecting the camera's rotation. */
 async function resize(file: File) {
-  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" }).catch(() => {
+    throw new Error(`"${file.name}" couldn't be opened as an image. Choose a JPG, PNG, WebP or GIF.`);
+  });
   const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
   const width = Math.round(bitmap.width * scale);
   const height = Math.round(bitmap.height * scale);
@@ -113,6 +152,7 @@ function ItemDialog({
   const [links, setLinks] = useState<string[]>([""]);
   const [photo, setPhoto] = useState<{ file: File; preview: string } | null>(null);
   const [removePhoto, setRemovePhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [openFor, setOpenFor] = useState<typeof editing>(null);
 
@@ -122,6 +162,16 @@ function ItemDialog({
     setLinks(item?.links.length ? item.links : [""]);
     setPhoto(null);
     setRemovePhoto(false);
+    setPhotoError(null);
+  }
+
+  async function choosePhoto(file: File) {
+    const problem = await photoProblem(file);
+    setPhotoError(problem);
+    if (!problem) {
+      setPhoto({ file, preview: URL.createObjectURL(file) });
+      setRemovePhoto(false);
+    }
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -185,7 +235,7 @@ function ItemDialog({
                   className="sr-only"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) setPhoto({ file, preview: URL.createObjectURL(file) });
+                    if (file) void choosePhoto(file);
                     e.target.value = "";
                   }}
                 />
@@ -198,12 +248,18 @@ function ItemDialog({
                   onClick={() => {
                     setPhoto(null);
                     setRemovePhoto(true);
+                    setPhotoError(null);
                   }}
                 >
                   Remove
                 </Button>
               )}
             </div>
+            {photoError && (
+              <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {photoError}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">

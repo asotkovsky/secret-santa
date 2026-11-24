@@ -2,10 +2,8 @@ import { EyeOff, HeartHandshake, ListChecks, MessageSquareText, Sparkles, type L
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Logo, SectionIcon, SiteFooter } from "@/components/brand";
-import { NiceBadge } from "@/components/nice-badge";
 import { Button } from "@/components/ui/button";
 import { getSession } from "@/lib/access";
-import { niceStatus } from "@/lib/nice";
 
 const FEATURES: { icon: LucideIcon; tone: "brand" | "pop" | "gold"; title: string; body: string }[] = [
   { icon: Sparkles, tone: "gold", title: "Names from Santa's hat", body: "A fair, random draw, done in one tap." },
@@ -31,7 +29,6 @@ export default async function Home() {
   return (
     <div className="min-h-dvh">
       <section className="relative bg-pine-deep bg-snowflakes-light text-white">
-        <div className="h-1 candy-stripe" />
         <header className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <Logo light />
           <Button asChild variant="ghost" size="sm" className="text-white hover:bg-white/10 hover:text-white">
@@ -53,10 +50,6 @@ export default async function Home() {
               <Link href="/sign-up">Start your Nice List</Link>
             </Button>
             <p className="text-sm text-white/70">Got a link by text? Just open it. No account needed.</p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-2 pt-2">
-            <NiceBadge status={niceStatus(true, 3, true)} />
-            <NiceBadge status={niceStatus(true, 3, false)} />
           </div>
         </div>
         <div className="pointer-events-none absolute inset-x-0 -bottom-[18px] bg-lights" aria-hidden />

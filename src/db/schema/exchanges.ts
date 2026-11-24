@@ -11,7 +11,6 @@ import {
   index,
   integer,
   pgTable,
-  primaryKey,
   text,
   timestamp,
   unique,
@@ -178,23 +177,4 @@ export const textLog = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("text_log_exchange_idx").on(t.exchangeId, t.createdAt)],
-);
-
-/**
- * Anonymous reactions shoppers leave on someone else's wish-list items ("Bold choice", …).
- * Everyone, including the list's owner, sees the counts; nobody sees who reacted.
- */
-export const itemReactions = pgTable(
-  "item_reactions",
-  {
-    itemId: uuid("item_id")
-      .notNull()
-      .references(() => wishlistItems.id, { onDelete: "cascade" }),
-    participantId: uuid("participant_id")
-      .notNull()
-      .references(() => participants.id, { onDelete: "cascade" }),
-    reaction: text("reaction").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [primaryKey({ columns: [t.itemId, t.participantId, t.reaction] })],
 );

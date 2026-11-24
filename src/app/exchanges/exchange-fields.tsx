@@ -1,3 +1,4 @@
+import { OptionalDateField } from "@/components/date-field";
 import { Field, TextareaField } from "@/components/form-field";
 
 export type ExchangeDefaults = {
@@ -32,28 +33,18 @@ export function ExchangeFields({ defaults = {} }: { defaults?: ExchangeDefaults 
         placeholder="e.g. 50"
         defaultValue={defaults.budget}
       />
-      <Field
-        name="exchangeOn"
-        label="Gift exchange day"
-        optional
-        type="date"
-        defaultValue={defaults.exchangeOn ?? ""}
-      />
-      <Field
+      <OptionalDateField name="exchangeOn" label="Gift exchange day" defaultValue={defaults.exchangeOn} />
+      <OptionalDateField
         name="wishlistDueOn"
         label="Wish lists due"
-        optional
-        type="date"
         hint="Reminders nudge anyone whose list is still empty."
-        defaultValue={defaults.wishlistDueOn ?? ""}
+        defaultValue={defaults.wishlistDueOn}
       />
-      <Field
+      <OptionalDateField
         name="revealDueOn"
         label="Reveal matches by"
-        optional
-        type="date"
         hint="Reminders nudge anyone who hasn't looked yet."
-        defaultValue={defaults.revealDueOn ?? ""}
+        defaultValue={defaults.revealDueOn}
       />
       <TextareaField
         name="details"

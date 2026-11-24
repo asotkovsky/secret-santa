@@ -33,6 +33,3 @@ export async function unmarkPurchasedAction(token: string, itemId: string) {
   return participantAction(token, (ctx) => svc.unmarkPurchased(ctx, itemId));
 }
 
-export async function toggleReactionAction(token: string, itemId: string, reaction: string) {
-  return participantAction(token, (ctx) => svc.toggleReaction(ctx, itemId, reaction));
-}

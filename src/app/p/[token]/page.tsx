@@ -2,11 +2,9 @@ import { ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteFooter } from "@/components/brand";
-import { NiceBadge } from "@/components/nice-badge";
 import { Badge } from "@/components/ui/badge";
 import { requireParticipant } from "@/lib/access";
 import { firstName } from "@/lib/format";
-import { niceStatus } from "@/lib/nice";
 import { getHome } from "@/server/wishlists";
 import { ExchangeFacts, ExchangeHeader } from "./header";
 import { MatchCard } from "./match-card";
@@ -68,8 +66,7 @@ export default async function ParticipantHome({ params }: { params: Promise<{ to
                           {p.name}
                           {isMatch && <Badge>🎁 Your match</Badge>}
                         </span>
-                        <span className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                          <NiceBadge status={niceStatus(Boolean(exchange.drawnAt), p.itemCount, p.revealed)} />
+                        <span className="text-sm text-muted-foreground">
                           {p.itemCount === 0
                             ? "No ideas yet"
                             : `${p.itemCount} ${p.itemCount === 1 ? "idea" : "ideas"}`}

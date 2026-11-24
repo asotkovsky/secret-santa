@@ -95,7 +95,7 @@ export function TextQueueDialog({
         ) : total === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             {kind === "reminder"
-              ? "Everyone's Confirmed Nice. No reminders needed! 🎉"
+              ? "Everyone's all set. No reminders needed! 🎉"
               : "Nobody here has a phone number yet."}
           </p>
         ) : (

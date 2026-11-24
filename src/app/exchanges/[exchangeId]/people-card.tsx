@@ -24,9 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { NiceBadge } from "@/components/nice-badge";
 import { formObject, useAction } from "@/components/use-action";
-import { niceStatus } from "@/lib/nice";
 import { cn } from "@/lib/utils";
 import { addParticipantAction, removeParticipantAction, resetLinkAction, updateParticipantAction } from "./actions";
 import { TextQueueDialog } from "./text-queue";
@@ -117,8 +115,7 @@ function PersonItem({
             {p.phone ?? "No phone number"}
           </div>
         </div>
-        <div className="space-y-1">
-          <NiceBadge status={niceStatus(drawn, p.itemCount, p.revealed)} />
+        <div>
           <p className="text-xs text-muted-foreground">
             {[
               p.itemCount ? `${p.itemCount} ${p.itemCount === 1 ? "idea" : "ideas"} on their list` : "No wish list yet",

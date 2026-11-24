@@ -6,9 +6,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AuditTicker } from "@/components/audit-ticker";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAction } from "@/components/use-action";
-import { pick, REDRAW_DENIALS } from "@/lib/jokes";
 import { cn } from "@/lib/utils";
 import { revealAction } from "./actions";
 
@@ -85,7 +83,6 @@ export function MatchCard({ token, drawn, match: initial }: { token: string; dra
       <Button asChild variant="outline" className="w-full sm:w-auto">
         <Link href={`/p/${token}/lists/${match!.id}`}>See {match!.name}&apos;s wish list →</Link>
       </Button>
-      <RedrawPrank />
     </Present>
   );
 }
@@ -153,34 +150,6 @@ function HoldToReveal({ onDone }: { onDone: () => void }) {
         {progress > 0 ? "Scanning… keep holding" : "Press and hold"}
       </span>
     </div>
-  );
-}
-
-/** A tiny "Request a redraw" link that North Pole HR always denies. */
-function RedrawPrank() {
-  const [denial, setDenial] = useState<string | null>(null);
-  return (
-    <>
-      <button
-        type="button"
-        className="block w-full pt-2 text-[11px] text-muted-foreground/70 underline-offset-2 hover:underline"
-        onClick={() => setDenial(pick(REDRAW_DENIALS))}
-      >
-        Request a redraw
-      </button>
-      <Dialog open={denial !== null} onOpenChange={(o) => !o && setDenial(null)}>
-        <DialogContent className="text-center">
-          <DialogHeader className="items-center text-center">
-            <p className="text-4xl" aria-hidden>
-              🙅
-            </p>
-            <DialogTitle className="text-xl">Request denied</DialogTitle>
-            <DialogDescription className="text-base">{denial}</DialogDescription>
-          </DialogHeader>
-          <Button onClick={() => setDenial(null)}>Fine. 🙄</Button>
-        </DialogContent>
-      </Dialog>
-    </>
   );
 }
 

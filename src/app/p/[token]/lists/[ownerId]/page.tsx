@@ -6,8 +6,7 @@ import { isUuid, requireParticipant } from "@/lib/access";
 import { formatMoney } from "@/lib/format";
 import { getMatch, getOthersList } from "@/server/wishlists";
 import { ExchangeHeader } from "../../header";
-import { ItemCard } from "../../item-card";
-import { Reactions } from "../../reactions";
+import { ItemCard, ItemGrid, ItemTag } from "../../item-card";
 import { PurchaseButton } from "./purchase-button";
 
 export const metadata: Metadata = { title: "Wish list" };
@@ -31,7 +30,7 @@ export default async function OthersListPage({ params }: { params: Promise<{ tok
   return (
     <div className="min-h-dvh">
       <ExchangeHeader token={token} exchange={ctx.exchange} />
-      <main className="mx-auto max-w-3xl space-y-6 px-4 pt-8 pb-6 sm:px-6">
+      <main className="mx-auto max-w-5xl space-y-6 px-4 pt-8 pb-6 sm:px-6">
         <div className="space-y-2">
           <Link href={`/p/${token}`} className="text-sm text-muted-foreground hover:underline">
             ← Back to my page
@@ -62,31 +61,24 @@ export default async function OthersListPage({ params }: { params: Promise<{ tok
             <p className="mt-1">Enjoy your novelty socks, {list.owner.name}. (Or check back soon.)</p>
           </div>
         ) : (
-          <ul className="space-y-3">
+          <ItemGrid wide>
             {items.map((item) => (
               <ItemCard
                 key={item.id}
                 token={token}
                 item={item}
                 dimmed={item.purchased}
-                badge={
-                  item.purchased && (
-                    <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                      {item.purchasedByMe ? "✓ You bought this" : "Someone already bought this"}
-                    </span>
-                  )
-                }
+                tag={item.purchased && <ItemTag>✓ {item.purchasedByMe ? "You bought this" : "Bought"}</ItemTag>}
                 footer={
-                  <div className="space-y-3">
-                    {!item.purchased && <Reactions token={token} itemId={item.id} initial={item.reactions} />}
-                    {(!item.purchased || item.purchasedByMe) && (
-                      <PurchaseButton token={token} itemId={item.id} purchasedByMe={item.purchasedByMe} />
-                    )}
-                  </div>
+                  !item.purchased || item.purchasedByMe ? (
+                    <PurchaseButton token={token} itemId={item.id} purchasedByMe={item.purchasedByMe} />
+                  ) : (
+                    <p className="py-1.5 text-center text-xs text-muted-foreground">Someone got this one</p>
+                  )
                 }
               />
             ))}
-          </ul>
+          </ItemGrid>
         )}
       </main>
       <SiteFooter />

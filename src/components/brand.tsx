@@ -3,10 +3,10 @@ import Link from "next/link";
 import { APP_NAME } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
-/** The vintage winking Santa (public/santa.svg, built by scripts/santa-svg.mjs; also src/app/icon.svg). */
+/** The jolly Santa face (public/santa.svg; the same art is src/app/icon.svg). */
 export function LogoMark({ className }: { className?: string }) {
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src="/santa.svg" alt="" width={48} height={48} className={cn("size-12 shrink-0", className)} />;
+  return <img src="/santa.svg" alt="" width={44} height={44} className={cn("size-11 shrink-0", className)} />;
 }
 
 /** The wordmark. `light` for use on the green header. */
@@ -27,8 +27,8 @@ export function Logo({ className, light = false }: { className?: string; light?:
 }
 
 /**
- * A calm pine-green header with a thin candy-cane stripe on top. `title` replaces the wordmark
- * (e.g. the exchange's name on participant pages).
+ * The pine-green header with a string of Christmas lights hanging below it. `title` replaces the
+ * wordmark (e.g. the exchange's name on participant pages).
  */
 export function SiteHeader({
   href = "/",
@@ -40,8 +40,7 @@ export function SiteHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <header>
-      <div className="h-1 candy-stripe" />
+    <header className="relative z-10">
       <div className="bg-pine-deep text-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
           <Link href={href} className="flex min-w-0 items-center gap-2.5">
@@ -62,6 +61,7 @@ export function SiteHeader({
           {children && <div className="flex shrink-0 items-center gap-2 text-sm">{children}</div>}
         </div>
       </div>
+      <div className="pointer-events-none absolute inset-x-0 -bottom-4.5 bg-lights" aria-hidden />
     </header>
   );
 }

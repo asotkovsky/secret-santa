@@ -4,12 +4,11 @@
 // `ownerItems` never touches the purchases table; only `shopperItems` does, and it is only ever
 // called for a list that isn't the viewer's own.
 import "server-only";
-import { and, asc, count, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, count, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { assignments, exchanges, itemPhotos, itemReactions, participants, purchases, wishlistItems } from "@/db/schema";
+import { assignments, exchanges, itemPhotos, participants, purchases, wishlistItems } from "@/db/schema";
 import type { ParticipantCtx } from "@/lib/access";
-import { REACTIONS } from "@/lib/jokes";
 import { optText, UserError } from "./core";
 
 // ---- Home ----
@@ -21,7 +20,6 @@ export async function getHome({ participant, exchange }: ParticipantCtx) {
         id: participants.id,
         name: participants.name,
         isOrganizer: participants.isOrganizer,
-        revealed: sql<boolean>`${participants.revealedAt} is not null`,
         itemCount: count(wishlistItems.id),
       })
       .from(participants)
@@ -67,43 +65,14 @@ const itemColumns = {
   ...photoColumns,
 };
 
-export type ReactionCount = { key: string; count: number; mine: boolean };
-
-/** Anonymous reaction counts per item, plus which ones the viewer left. Never who reacted. */
-async function reactionsFor(itemIds: string[], viewerId: string) {
-  const byItem = new Map<string, ReactionCount[]>();
-  if (!itemIds.length) return byItem;
-  const rows = await db
-    .select({
-      itemId: itemReactions.itemId,
-      reaction: itemReactions.reaction,
-      count: count(),
-      mine: sql<boolean>`bool_or(${itemReactions.participantId} = ${viewerId})`,
-    })
-    .from(itemReactions)
-    .where(inArray(itemReactions.itemId, itemIds))
-    .groupBy(itemReactions.itemId, itemReactions.reaction);
-  for (const r of rows) {
-    const list = byItem.get(r.itemId) ?? [];
-    list.push({ key: r.reaction, count: r.count, mine: r.mine });
-    byItem.set(r.itemId, list);
-  }
-  return byItem;
-}
-
 /** Items as their owner sees them: no purchase information at all. */
 async function ownerItems(ownerId: string) {
-  const rows = await db
+  return db
     .select(itemColumns)
     .from(wishlistItems)
     .leftJoin(itemPhotos, eq(itemPhotos.itemId, wishlistItems.id))
     .where(eq(wishlistItems.participantId, ownerId))
     .orderBy(asc(wishlistItems.sortOrder), asc(wishlistItems.createdAt));
-  const reactions = await reactionsFor(
-    rows.map((r) => r.id),
-    ownerId,
-  );
-  return rows.map((item) => ({ ...item, reactions: reactions.get(item.id) ?? [] }));
 }
 
 /** Items as other shoppers see them: whether each is bought, and whether by the viewer. */
@@ -115,14 +84,9 @@ async function shopperItems(ownerId: string, viewerId: string) {
     .leftJoin(purchases, eq(purchases.itemId, wishlistItems.id))
     .where(eq(wishlistItems.participantId, ownerId))
     .orderBy(asc(wishlistItems.sortOrder), asc(wishlistItems.createdAt));
-  const reactions = await reactionsFor(
-    rows.map((r) => r.id),
-    viewerId,
-  );
   // Don't send who bought it, just whether it's taken and whether it was you.
   return rows.map(({ buyerId, ...item }) => ({
     ...item,
-    reactions: reactions.get(item.id) ?? [],
     purchased: buyerId !== null,
     purchasedByMe: buyerId === viewerId,
   }));
@@ -221,25 +185,6 @@ export async function markPurchased(ctx: ParticipantCtx, itemId: string) {
     if (existing?.buyerId !== ctx.participant.id) throw new UserError("Someone else already got this one.");
   }
   return { itemId };
-}
-
-/** Adds or removes one of the viewer's anonymous reactions on someone else's item. */
-export async function toggleReaction(ctx: ParticipantCtx, itemId: string, reaction: string) {
-  if (!REACTIONS.some((r) => r.key === reaction)) throw new UserError("Unknown reaction.");
-  await assertShoppable(ctx, itemId);
-  const where = and(
-    eq(itemReactions.itemId, itemId),
-    eq(itemReactions.participantId, ctx.participant.id),
-    eq(itemReactions.reaction, reaction),
-  );
-  const removed = await db.delete(itemReactions).where(where).returning({ itemId: itemReactions.itemId });
-  if (!removed.length) {
-    await db
-      .insert(itemReactions)
-      .values({ itemId, participantId: ctx.participant.id, reaction })
-      .onConflictDoNothing();
-  }
-  return { itemId, on: !removed.length };
 }
 
 export async function unmarkPurchased(ctx: ParticipantCtx, itemId: string) {
