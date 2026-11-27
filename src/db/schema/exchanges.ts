@@ -138,19 +138,26 @@ export const wishlistItems = pgTable(
   (t) => [index("wishlist_items_participant_idx").on(t.participantId)],
 );
 
-/** An item's photo, resized in the browser before upload. A new upload gets a new id. */
-export const itemPhotos = pgTable("item_photos", {
-  id: id(),
-  itemId: uuid("item_id")
-    .notNull()
-    .unique()
-    .references(() => wishlistItems.id, { onDelete: "cascade" }),
-  contentType: text("content_type").notNull(),
-  data: bytea("data").notNull(),
-  width: integer("width").notNull(),
-  height: integer("height").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+/**
+ * An item's photos, resized in the browser before upload. Photos never change (a new upload
+ * gets a new id), so they can be cached forever. The lowest `sortOrder` is the cover.
+ */
+export const itemPhotos = pgTable(
+  "item_photos",
+  {
+    id: id(),
+    itemId: uuid("item_id")
+      .notNull()
+      .references(() => wishlistItems.id, { onDelete: "cascade" }),
+    contentType: text("content_type").notNull(),
+    data: bytea("data").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("item_photos_item_idx").on(t.itemId, t.sortOrder)],
+);
 
 /**
  * Who bought what. SECRET from the item's owner: never read this table on behalf of the
