@@ -86,7 +86,6 @@ export async function getGuestList(shareToken: string) {
   const rows = await db
     .select({ ...itemColumns, purchaseId: purchases.itemId, guestId: purchases.guestId })
     .from(wishlistItems)
-    .leftJoin(itemPhotos, eq(itemPhotos.itemId, wishlistItems.id))
     .leftJoin(purchases, eq(purchases.itemId, wishlistItems.id))
     .where(eq(wishlistItems.participantId, row.owner.id))
     .orderBy(asc(wishlistItems.sortOrder), asc(wishlistItems.createdAt));

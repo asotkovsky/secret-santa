@@ -21,8 +21,8 @@ export async function deleteItemAction(token: string, itemId: string) {
   return participantAction(token, (ctx) => svc.deleteItem(ctx, itemId));
 }
 
-export async function removePhotoAction(token: string, itemId: string) {
-  return participantAction(token, (ctx) => svc.removeItemPhoto(ctx, itemId));
+export async function arrangePhotosAction(token: string, itemId: string, photoIds: string[]) {
+  return participantAction(token, (ctx) => svc.arrangeItemPhotos(ctx, itemId, photoIds));
 }
 
 export async function markPurchasedAction(token: string, itemId: string) {

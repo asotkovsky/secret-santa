@@ -1,14 +1,14 @@
 import { ArrowUpRight, Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { type ItemPhoto, ItemPhotos } from "./item-photos";
 
 export type ItemView = {
   id: string;
   name: string;
   links: string[];
   notes: string | null;
-  photoId: string | null;
-  photoWidth: number | null;
-  photoHeight: number | null;
+  /** Cover first. */
+  photos: ItemPhoto[];
 };
 
 function linkLabel(url: string) {
@@ -56,7 +56,6 @@ export function ItemCard({
   footer?: React.ReactNode;
   dimmed?: boolean;
 }) {
-  const photo = item.photoId ? `${photoBase}/photos/${item.photoId}` : null;
   return (
     <li
       className={cn(
@@ -65,18 +64,8 @@ export function ItemCard({
       )}
     >
       <div className="relative aspect-square">
-        {photo ? (
-          <a href={photo} target="_blank" rel="noreferrer" className="block size-full bg-muted">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={photo}
-              alt=""
-              width={item.photoWidth ?? undefined}
-              height={item.photoHeight ?? undefined}
-              loading="lazy"
-              className={cn("size-full object-cover", dimmed && "opacity-50 grayscale")}
-            />
-          </a>
+        {item.photos.length > 0 ? (
+          <ItemPhotos photos={item.photos} photoBase={photoBase} name={item.name} dimmed={dimmed} />
         ) : (
           <div
             aria-hidden

@@ -1,9 +1,9 @@
 import { revalidatePath } from "next/cache";
 import { findParticipant } from "@/lib/access";
 import { UserError } from "@/server/core";
-import { setItemPhoto } from "@/server/wishlists";
+import { addItemPhoto } from "@/server/wishlists";
 
-// Upload a photo for one of your own items (multipart: file, width, height). A route handler
+// Add a photo to one of your own items (multipart: file, width, height). A route handler
 // rather than a server action, whose request size limit is too small for photos.
 export async function POST(req: Request, { params }: { params: Promise<{ token: string; itemId: string }> }) {
   const { token, itemId } = await params;
@@ -13,7 +13,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
     const form = await req.formData();
     const file = form.get("file");
     if (!(file instanceof File)) throw new UserError("Choose a photo to upload.");
-    const result = await setItemPhoto(ctx, itemId, {
+    const result = await addItemPhoto(ctx, itemId, {
       data: Buffer.from(await file.arrayBuffer()),
       width: Number(form.get("width")),
       height: Number(form.get("height")),

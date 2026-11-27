@@ -4,7 +4,7 @@
 // `ownerItems` never touches the purchases table; only `shopperItems` does, and it is only ever
 // called for a list that isn't the viewer's own.
 import "server-only";
-import { and, asc, count, eq, ne, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, ne, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { assignments, exchanges, itemPhotos, participants, purchases, wishlistItems } from "@/db/schema";
@@ -64,13 +64,24 @@ export async function reveal({ participant, exchange }: ParticipantCtx) {
 
 // ---- Lists ----
 
-const photoColumns = { photoId: itemPhotos.id, photoWidth: itemPhotos.width, photoHeight: itemPhotos.height };
+type ItemPhoto = { id: string; width: number; height: number };
+
+/**
+ * An item's photos (cover first) as one JSON array, so each item stays a single row. The item id
+ * is spelled out in full: drizzle drops the table name from columns in single-table queries, and
+ * a bare "id" here would mean the photo's id.
+ */
+const photosColumn = sql<ItemPhoto[]>`coalesce((
+  select json_agg(json_build_object('id', p.id, 'width', p.width, 'height', p.height) order by p.sort_order, p.created_at)
+  from item_photos p where p.item_id = "wishlist_items"."id"
+), '[]'::json)`;
+
 export const itemColumns = {
   id: wishlistItems.id,
   name: wishlistItems.name,
   links: wishlistItems.links,
   notes: wishlistItems.notes,
-  ...photoColumns,
+  photos: photosColumn,
 };
 
 /** Items as their owner sees them: no purchase information at all. */
@@ -78,7 +89,6 @@ export async function ownerItems(ownerId: string) {
   return db
     .select(itemColumns)
     .from(wishlistItems)
-    .leftJoin(itemPhotos, eq(itemPhotos.itemId, wishlistItems.id))
     .where(eq(wishlistItems.participantId, ownerId))
     .orderBy(asc(wishlistItems.sortOrder), asc(wishlistItems.createdAt));
 }
@@ -88,7 +98,6 @@ async function shopperItems(ownerId: string, viewerId: string) {
   const rows = await db
     .select({ ...itemColumns, purchaseId: purchases.itemId, buyerId: purchases.buyerId })
     .from(wishlistItems)
-    .leftJoin(itemPhotos, eq(itemPhotos.itemId, wishlistItems.id))
     .leftJoin(purchases, eq(purchases.itemId, wishlistItems.id))
     .where(eq(wishlistItems.participantId, ownerId))
     .orderBy(asc(wishlistItems.sortOrder), asc(wishlistItems.createdAt));
@@ -218,7 +227,10 @@ function sniffImageType(data: Buffer) {
   return null;
 }
 
-export async function setItemPhoto(
+export const MAX_PHOTOS = 10;
+
+/** Adds a photo after one of your own items' existing photos. */
+export async function addItemPhoto(
   { participant }: ParticipantCtx,
   itemId: string,
   photo: { data: Buffer; width: number; height: number },
@@ -232,20 +244,39 @@ export async function setItemPhoto(
   if (!(width > 0 && height > 0 && width <= 10_000 && height <= 10_000)) {
     throw new UserError("Couldn't read that photo's size.");
   }
-  // Replace any existing photo; the new one gets a new id, so cached copies don't go stale.
-  const [row] = await db.transaction(async (tx) => {
-    await tx.delete(itemPhotos).where(eq(itemPhotos.itemId, itemId));
-    return tx
-      .insert(itemPhotos)
-      .values({ itemId, contentType, data: photo.data, width, height })
-      .returning({ id: itemPhotos.id });
-  });
+  const [{ n, last }] = await db
+    .select({ n: count(), last: sql<number>`coalesce(max(${itemPhotos.sortOrder}), -1)::int` })
+    .from(itemPhotos)
+    .where(eq(itemPhotos.itemId, itemId));
+  if (n >= MAX_PHOTOS) throw new UserError(`An item can have up to ${MAX_PHOTOS} photos.`);
+  const [row] = await db
+    .insert(itemPhotos)
+    .values({ itemId, contentType, data: photo.data, width, height, sortOrder: last + 1 })
+    .returning({ id: itemPhotos.id });
   return { photoId: row.id };
 }
 
-export async function removeItemPhoto({ participant }: ParticipantCtx, itemId: string) {
+/**
+ * Sets which photos one of your own items keeps, in order (the first is the cover). Photos left
+ * out are deleted; ids that aren't this item's photos are ignored.
+ */
+export async function arrangeItemPhotos({ participant }: ParticipantCtx, itemId: string, input: unknown) {
   await assertOwnItem(participant.id, itemId);
-  await db.delete(itemPhotos).where(eq(itemPhotos.itemId, itemId));
+  const photoIds = z.array(z.uuid()).max(MAX_PHOTOS).parse(input);
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(itemPhotos)
+      .where(and(eq(itemPhotos.itemId, itemId), photoIds.length ? notInArray(itemPhotos.id, photoIds) : undefined));
+    if (!photoIds.length) return;
+    const order = sql.join(
+      photoIds.map((id, i) => sql`when ${id}::uuid then ${i}::int`),
+      sql` `,
+    );
+    await tx
+      .update(itemPhotos)
+      .set({ sortOrder: sql`case ${itemPhotos.id} ${order} end` })
+      .where(and(eq(itemPhotos.itemId, itemId), inArray(itemPhotos.id, photoIds)));
+  });
   return { itemId };
 }
 
